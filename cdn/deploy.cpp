@@ -1,17 +1,30 @@
 #include "deploy.h"
+#include "lib_util.h"
+
 #include <stdio.h>
 #include <vector>
 #include <iostream>
 #include <string.h>
+
 using namespace std;
 #define MAX_LINE_LEN 55000
 
-void initiate(char * topo[MAX_EDGE_NUM],int line_num,int &network_node,int &route,int &customer_node,int &server_cost,vector<vector <int> > &route_info, vector<vector <int> > &customer_info)
+/* typedef struct File_Info_t {
+    int line_num;
+    int network_node;
+    int route;
+    int customer_node;
+    int server_cost;
+}File_Info; */
+
+void initiate(char * topo[MAX_EDGE_NUM],int line_num,int &network_node,int &route,
+              int &customer_node,int &server_cost, MGraph &route_info, MGraph &customer_info)
 {
     int scan = 0;
     int num1,num2,num3,num4;
     vector<int> temp1(4);
     vector<int> temp2(3);
+
     sscanf(topo[scan++],"%d %d %d",&network_node,&route,&customer_node);
     sscanf(topo[++scan],"%d",&server_cost);
     ++scan;
@@ -33,6 +46,12 @@ void initiate(char * topo[MAX_EDGE_NUM],int line_num,int &network_node,int &rout
         customer_info.push_back(temp2);
     }
 }
+
+void make_output(char *topo[MAX_EDGE_NUM])
+{
+
+}
+
 //你要完成的功能总入口
 void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
 {
@@ -40,24 +59,22 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
 	//char * topo_file = (char *)"17\n\n0 8 0 20\n21 8 0 20\n9 11 1 13\n21 22 2 20\n23 22 2 8\n1 3 3 11\n24 3 3 17\n27 3 3 26\n24 3 3 10\n18 17 4 11\n1 19 5 26\n1 16 6 15\n 15 13 7 13\n4 5 8 18\n2 25 9 15\n0 7 10 10\n23 24 11 23";
 	char * topo_file;
 
-	/*
-    int i;
-
-	for (i = 0; i < line_num; i++)
-	{
-		printf(topo[i]);
-	}
-    */
-
     // 把topo字符串矩阵转化为几个整型数组add by zyf
     int network_node, route, customer_node;
     int server_cost;
-    vector<vector <int> > route_info;
-    vector<vector <int> > customer_info;
-    initiate(topo,line_num,network_node,route,customer_node,server_cost,route_info,customer_info);
+    MGraph route_info;
+    MGraph customer_info;
+
+    initiate(topo, line_num, network_node, route, customer_node, server_cost, route_info, customer_info);
+
+
+
+
+
     topo_file = (char *)malloc((customer_info.size()+2)*MAX_LINE_LEN);
+
     char route_num[20];
-    sprintf(route_num,"%d",customer_info.size());
+    sprintf(route_num, "%d", customer_info.size());
     strncpy(topo_file,route_num,strlen(route_num));
     strncat(topo_file,"\n",1);
     char tempchar[80];

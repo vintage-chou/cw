@@ -3,6 +3,8 @@
 #include "lib_time.h"
 #include "stdio.h"
 
+#include "lib_util.h"
+
 int main(int argc, char *argv[])
 {
     print_time("Begin");
@@ -28,6 +30,7 @@ int main(int argc, char *argv[])
 
     print_time("End");
 
+    
+
 	return 0;
 }
-

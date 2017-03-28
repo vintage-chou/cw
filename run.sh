@@ -3,9 +3,9 @@
 set -e
 
 if [ $# -eq 0 ]; then
-    CASE="case0.txt"
-elif [ $# -eq $1 ]; then
-    CASE="case$1.txt"
+    CASE="new/0/case0.txt"
+elif [ $# -eq 3 ]; then
+    CASE="$1/$2/case$3.txt"
 else
     echo "Err, para"
 fi
