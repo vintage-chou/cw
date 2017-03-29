@@ -1,13 +1,21 @@
+#ifndef __LIB_UTIL_H__
+#define __LIB_UTIL_H__
+
 #include <stdio.h>
 #include <vector>
 #include "config.h"
 
-typedef std::vector<std::vector<int> > MGraph;
-// typedef int Matrix[MAX_NODE_SIZE][MAX_NODE_SIZE];
-
-typedef struct MGraph_t {
+/* typedef struct MGraph_t {
     int max_size;
-    Matrix matrix;
-}MGraph;
+    Adjacency_Matrix matrix;
+}MGraph; */
 
-int shortest_dijkstra(MGraph m, int v0, int path_matrix[], int sp_table[]);
+// typedef std::vector<int> Path_Matrix;
+// typedef std::vector<int> Shortest_Path;
+
+typedef uint_16 Path_Matrix;
+typedef uint_16 Shortest_Path;
+
+void shortest_dijkstra(Adjacency_Matrix m, int size, int v0, Path_Matrix p[], Shortest_Path s[]);
+
+#endif

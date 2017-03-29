@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+# set -e
 
 if [ $# -eq 0 ]; then
     CASE="new/0/case0.txt"
@@ -14,13 +14,14 @@ fi
 cp ./case_example/$CASE ./bin
 
 cd ./bin
-RESULT=${CASE%.*}.result
+CASE_NAME=$(basename $CASE)
+RESULT=$(basename ${CASE%.*}).result
 CMD="./cdn"
 
-if [ ! -e "./$CASE" ]; then
+if [ ! -e $(basename $CASE) ]; then
     echo "Err, no case"
     exit 1
 fi
 
-$CMD $CASE $RESULT
+$CMD $CASE_NAME $RESULT
 cat $RESULT
