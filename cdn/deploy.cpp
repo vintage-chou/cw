@@ -25,8 +25,6 @@ typedef struct Global_Info_t {
     Src_Tar_Set target;
 }Global_Info;
 
-typedef vector<vector<uint_16> > Input_File_Info;
-
 #define MAX_NODE_COSUMER_SIZE 1500
 
 
@@ -113,7 +111,7 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
     // initiate Adjacency Matrix (vSize * vSize).
     Adjacency_Matrix am(vSize, Adjacency_Matrix_Row(vSize, Link_Info{0, COST_INF}));
     make_adjacency_matrix(am, g, network_info, customer_info);
-    // print_matrix(am);
+    print_matrix(am);
 
 #ifdef _MY_DEBUG
     Path_Matrix path;
@@ -127,7 +125,7 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
     printf("dijkstra\n");
     for (uint_16 v : path)
     {
-        printf("path = %hd\n", v);
+        printf("%hd->", v);
     }
     printf("cost = %d\n", sp[4]);
 
@@ -137,10 +135,10 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
     printf("SPFA\n");
     for (uint_16 v : path)
     {
-        printf("path = %hd\n", v);
+        printf("%hd->", v);
     }
     printf("cost = %d\n", sp[4]);
-
+#endif
     Src_Tar_Set s;
     s.push_back(0);
 
@@ -153,7 +151,7 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
     puts("");
 
     super_ford_fulkerson(am, s, g.target);
-#endif
+
     /*
     topo_file = (char *)malloc((customer_info.size()+2)*MAX_LINE_LEN);
     char route_num[20];

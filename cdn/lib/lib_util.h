@@ -13,7 +13,7 @@
 typedef struct Element_t
 {
     uint_16 bandwidth;
-    char flow;
+    uint_16 flow;
     uint_16 left;        // left bandwidth
     char cost;
 } Element;
