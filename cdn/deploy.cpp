@@ -22,13 +22,13 @@ typedef struct Global_Info_t {
     int links;
     int customer_node;
     int server_cost;
-    Src_Tar_Set target;
+    Src_Tar_Set src;
+    Src_Tar_Set tar;
 }Global_Info;
 
 #define MAX_NODE_COSUMER_SIZE 1500
 
-
-// FIXME: merge "Extern_Adjacency_Matrix" and "Adjacency_Matrix" !!!!
+uint_16 customer_need[500];
 
 void initiate(char *topo[MAX_EDGE_NUM], int line_num, Global_Info &g,
               Input_File_Info &network_info, Input_File_Info &customer_info)
@@ -53,46 +53,42 @@ void initiate(char *topo[MAX_EDGE_NUM], int line_num, Global_Info &g,
     while(++scan < line_num)
     {
         sscanf(topo[scan], "%hd %hd %hd", &temp[0], &temp[1], &temp[2]);
-        g.target.push_back((uint_16)temp[1]);
+        g.tar.push_back((uint_16)temp[1]);
+        customer_need[temp[1]] = temp[2];
         customer_info.push_back(temp);
     }
 }
 
-void make_output(char *topo[MAX_EDGE_NUM])
-{
-
-}
-
 // create the network topo: making the network nodes and the customer nodes
 // in one adjacency matrix. "adjacency_matrix"
-void make_adjacency_matrix(Adjacency_Matrix &adjacency_matrix, Global_Info const &g,
+void make_adjacency_matrix(Adjacency_Matrix &am, Global_Info const &g,
                            Input_File_Info const network_info, Input_File_Info const customer_info)
 {
+    int size = am.size()-2;
 
     // make the undirected graph
     for (auto v : network_info)
     {
-        adjacency_matrix[v[START]][v[END]] = Link_Info{(uint_16)v[BANDWIDTH], (char)v[COST]};
-        adjacency_matrix[v[END]][v[START]] = Link_Info{(uint_16)v[BANDWIDTH], (char)v[COST]};
+        am[v[END]][v[START]] = am[v[START]][v[END]] =  \
+        Element{(uint_16)v[BANDWIDTH], 0, (uint_16)v[BANDWIDTH], (char)v[COST], (char)v[COST]};
     }
 
-    for (auto v : customer_info)
+    // pull into super src.
+    for (uint_16 l = 0; l < g.src.size(); l++)
     {
-        adjacency_matrix[v[START] + g.network_node][v[END]] = Link_Info{(uint_16)v[BANDWIDTH], 0};
-        adjacency_matrix[v[END]][v[START] + g.network_node] = Link_Info{(uint_16)v[BANDWIDTH], 0};
+        am[size][g.src[l]].bandwidth = BANDWIDTH_INF;
+        am[size][g.src[l]].left = BANDWIDTH_INF;
+        am[size][g.src[l]].cost = 0;
+        am[size][g.src[l]].origin_cost = 0;
     }
-}
 
-void print_matrix(Adjacency_Matrix const am)
-{
-    for (auto r : am)
+    // pull into super tar.
+    for (uint_16 l = 0; l < g.tar.size(); l++)
     {
-        for (auto l : r)
-        {
-            // printf("%d,%d ", l.bandwidth, l.cost);
-            printf("%d ", l.cost);
-        }
-        printf("\n");
+        am[g.tar[l]][size+1].bandwidth = customer_need[g.tar[l]];
+        am[g.tar[l]][size+1].left = customer_need[g.tar[l]];
+        am[g.tar[l]][size+1].cost = 0;
+        am[g.tar[l]][size+1].origin_cost = 0;
     }
 }
 
@@ -106,21 +102,38 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
     Global_Info g;
 
     initiate(topo, line_num, g, network_info, customer_info);
-    int vSize = g.network_node + g.customer_node;
+    int vSize = g.network_node + 2;
 
+    Src_Tar_Set s;
+
+    s.push_back(6);
+    s.push_back(7);
+    s.push_back(13);
+    s.push_back(17);
+    s.push_back(35);
+    s.push_back(41);
+    s.push_back(48);
+
+    //TODO:
+    g.src = s;
     // initiate Adjacency Matrix (vSize * vSize).
-    Adjacency_Matrix am(vSize, Adjacency_Matrix_Row(vSize, Link_Info{0, COST_INF}));
+    Adjacency_Matrix am(vSize, Adjacency_Matrix_Row(vSize, Element{0, 0, 0, COST_INF, COST_INF}));
     make_adjacency_matrix(am, g, network_info, customer_info);
-    print_matrix(am);
+    // print_matrix(am);
 
 #ifdef _MY_DEBUG
+    printf("targetSize = %u\n", g.tar.size());
+    for (auto v : g.tar)
+    {
+        printf("%u\t", v);
+    }
+    puts("");
+
     Path_Matrix path;
     Shortest_Path sp[MAX_NODE_COSUMER_SIZE];
-    Extern_Adjacency_Matrix eam(vSize, Extern_Adjacency_Matrix_Row(vSize, Element{0, 0, 0, COST_INF}));
-
     printf("size##=%d\n", vSize);
-    am2eam(am, eam);
-    shortest_dijkstra(eam, 2, 4, path, sp);
+
+    shortest_dijkstra(am, 2, 4, path, sp);
 
     printf("dijkstra\n");
     for (uint_16 v : path)
@@ -131,7 +144,7 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
 
     path.clear();
     memset(sp, COST_INF, MAX_NODE_COSUMER_SIZE);
-    shortest_spfa(eam, 2, 4, path, sp);
+    shortest_spfa(am, 2, 4, path, sp);
     printf("SPFA\n");
     for (uint_16 v : path)
     {
@@ -139,18 +152,8 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
     }
     printf("cost = %d\n", sp[4]);
 #endif
-    Src_Tar_Set s;
-    s.push_back(0);
 
-
-    printf("targetSize = %u\n", g.target.size());
-    for (auto v : g.target)
-    {
-        printf("%u\t", v);
-    }
-    puts("");
-
-    super_ford_fulkerson(am, s, g.target);
+    super_ford_fulkerson(am);
 
     /*
     topo_file = (char *)malloc((customer_info.size()+2)*MAX_LINE_LEN);

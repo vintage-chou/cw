@@ -5,6 +5,4 @@
 
 void deploy_server(char * graph[MAX_EDGE_NUM], int edge_num, char * filename);
 
-	
-
 #endif

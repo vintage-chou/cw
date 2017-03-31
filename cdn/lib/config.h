@@ -3,8 +3,8 @@
 
 #include <vector>
 
-// #define _DEBUG
-#define _MY_DEBUG
+#define _DEBUG
+// #define _MY_DEBUG
 
 #define MAX_NODE_SIZE 1000
 
@@ -22,12 +22,16 @@ typedef unsigned char uint_8;
 typedef unsigned short uint_16;
 typedef unsigned long uint_32 ;
 
-typedef struct Link_Info_t {
+typedef struct Element_t
+{
     uint_16 bandwidth;
+    short flow;
+    uint_16 left;        // left bandwidth
     char cost;
-}Link_Info;
+    char origin_cost;
+} Element;
 
-typedef std::vector<Link_Info> Adjacency_Matrix_Row;
+typedef std::vector<Element> Adjacency_Matrix_Row;
 typedef std::vector<Adjacency_Matrix_Row> Adjacency_Matrix;
 
 typedef std::vector<uint_16> Src_Tar_Set;
