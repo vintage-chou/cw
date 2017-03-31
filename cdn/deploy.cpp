@@ -22,17 +22,16 @@ typedef struct Global_Info_t {
     int links;
     int customer_node;
     int server_cost;
+    Src_Tar_Set target;
 }Global_Info;
 
 typedef vector<vector<uint_16> > Input_File_Info;
 
 #define MAX_NODE_COSUMER_SIZE 1500
 
-static Path_Matrix path[MAX_NODE_COSUMER_SIZE];
-static Shortest_Path sp[MAX_NODE_COSUMER_SIZE];
 
-// void initiate(char * topo[MAX_EDGE_NUM],int line_num,int &network_node,int &route,
-//               int &customer_node,int &server_cost, MGraph &route_info, MGraph &customer_info)
+// FIXME: merge "Extern_Adjacency_Matrix" and "Adjacency_Matrix" !!!!
+
 void initiate(char *topo[MAX_EDGE_NUM], int line_num, Global_Info &g,
               Input_File_Info &network_info, Input_File_Info &customer_info)
 {
@@ -56,6 +55,7 @@ void initiate(char *topo[MAX_EDGE_NUM], int line_num, Global_Info &g,
     while(++scan < line_num)
     {
         sscanf(topo[scan], "%hd %hd %hd", &temp[0], &temp[1], &temp[2]);
+        g.target.push_back((uint_16)temp[1]);
         customer_info.push_back(temp);
     }
 }
@@ -67,21 +67,21 @@ void make_output(char *topo[MAX_EDGE_NUM])
 
 // create the network topo: making the network nodes and the customer nodes
 // in one adjacency matrix. "adjacency_matrix"
-void make_adjacency_matrix(Adjacency_Matrix &adjacency_matrix, Global_Info const g,
+void make_adjacency_matrix(Adjacency_Matrix &adjacency_matrix, Global_Info const &g,
                            Input_File_Info const network_info, Input_File_Info const customer_info)
 {
 
     // make the undirected graph
     for (auto v : network_info)
     {
-        adjacency_matrix[v[START]][v[END]] = Link_Info{(uint_8)v[BANDWIDTH], (uint_8)v[COST]};
-        adjacency_matrix[v[END]][v[START]] = Link_Info{(uint_8)v[BANDWIDTH], (uint_8)v[COST]};
+        adjacency_matrix[v[START]][v[END]] = Link_Info{(uint_16)v[BANDWIDTH], (char)v[COST]};
+        adjacency_matrix[v[END]][v[START]] = Link_Info{(uint_16)v[BANDWIDTH], (char)v[COST]};
     }
 
     for (auto v : customer_info)
     {
-        adjacency_matrix[v[START] + g.network_node][v[END]] = Link_Info{(uint_8)v[BANDWIDTH], 0};
-        adjacency_matrix[v[END]][v[START] + g.network_node] = Link_Info{(uint_8)v[BANDWIDTH], 0};
+        adjacency_matrix[v[START] + g.network_node][v[END]] = Link_Info{(uint_16)v[BANDWIDTH], 0};
+        adjacency_matrix[v[END]][v[START] + g.network_node] = Link_Info{(uint_16)v[BANDWIDTH], 0};
     }
 }
 
@@ -91,7 +91,8 @@ void print_matrix(Adjacency_Matrix const am)
     {
         for (auto l : r)
         {
-            printf("%d,%d ", l.bandwidth, l.cost);
+            // printf("%d,%d ", l.bandwidth, l.cost);
+            printf("%d ", l.cost);
         }
         printf("\n");
     }
@@ -114,13 +115,45 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
     make_adjacency_matrix(am, g, network_info, customer_info);
     // print_matrix(am);
 
-    shortest_dijkstra(am, vSize, 0, path, sp);
+#ifdef _MY_DEBUG
+    Path_Matrix path;
+    Shortest_Path sp[MAX_NODE_COSUMER_SIZE];
+    Extern_Adjacency_Matrix eam(vSize, Extern_Adjacency_Matrix_Row(vSize, Element{0, 0, 0, COST_INF}));
 
-    // for (int i = 0; i < vSize; i++)
-    // {
-    //     printf("path = %d, sp = %d\n", path[i], sp[i]);
-    // }
+    printf("size##=%d\n", vSize);
+    am2eam(am, eam);
+    shortest_dijkstra(eam, 2, 4, path, sp);
 
+    printf("dijkstra\n");
+    for (uint_16 v : path)
+    {
+        printf("path = %hd\n", v);
+    }
+    printf("cost = %d\n", sp[4]);
+
+    path.clear();
+    memset(sp, COST_INF, MAX_NODE_COSUMER_SIZE);
+    shortest_spfa(eam, 2, 4, path, sp);
+    printf("SPFA\n");
+    for (uint_16 v : path)
+    {
+        printf("path = %hd\n", v);
+    }
+    printf("cost = %d\n", sp[4]);
+
+    Src_Tar_Set s;
+    s.push_back(0);
+
+
+    printf("targetSize = %u\n", g.target.size());
+    for (auto v : g.target)
+    {
+        printf("%u\t", v);
+    }
+    puts("");
+
+    super_ford_fulkerson(am, s, g.target);
+#endif
     /*
     topo_file = (char *)malloc((customer_info.size()+2)*MAX_LINE_LEN);
     char route_num[20];

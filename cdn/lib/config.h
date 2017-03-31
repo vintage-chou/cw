@@ -3,10 +3,13 @@
 
 #include <vector>
 
-// #define _DEBUG
+#define _DEBUG
+// #define _MY_DEBUG
 #define MAX_NODE_SIZE 1000
 
-#define COST_INF 255
+#define COST_INF 120
+#define BANDWIDTH_INF (uint_16(-1))
+#define NO_PARENT 1100
 
 #ifdef _DEBUG
 #define LOGF  printf
@@ -19,11 +22,13 @@ typedef unsigned short uint_16;
 typedef unsigned long uint_32 ;
 
 typedef struct Link_Info_t {
-    uint_8 bandwidth;
-    uint_8 cost;
+    uint_16 bandwidth;
+    char cost;
 }Link_Info;
 
 typedef std::vector<Link_Info> Adjacency_Matrix_Row;
 typedef std::vector<Adjacency_Matrix_Row> Adjacency_Matrix;
+
+typedef std::vector<uint_16> Src_Tar_Set;
 
 #endif
