@@ -7,6 +7,9 @@
 #include <iostream>
 #include <string.h>
 
+#include <string>
+#include <sstream>
+
 #define MAX_LINE_LEN 55000
 
 #define START 0
@@ -28,7 +31,14 @@ typedef struct Global_Info_t {
 
 #define MAX_NODE_COSUMER_SIZE 1500
 
+typedef vector<short> Feedback;
+
+uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out);
+string toString(uint_16 num);
+
+// TODO: use map instead !!
 uint_16 customer_need[500];
+uint_16 customer_local[500];
 
 void initiate(char *topo[MAX_EDGE_NUM], int line_num, Global_Info &g,
               Input_File_Info &network_info, Input_File_Info &customer_info)
@@ -55,6 +65,7 @@ void initiate(char *topo[MAX_EDGE_NUM], int line_num, Global_Info &g,
         sscanf(topo[scan], "%hd %hd %hd", &temp[0], &temp[1], &temp[2]);
         g.tar.push_back((uint_16)temp[1]);
         customer_need[temp[1]] = temp[2];
+        customer_local[temp[1]] = temp[0];
         customer_info.push_back(temp);
     }
 }
@@ -92,11 +103,48 @@ void make_adjacency_matrix(Adjacency_Matrix &am, Global_Info const &g,
     }
 }
 
-//你要完成的功能总入口
-void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
+string toString(uint_16 num)
 {
-	// 需要输出的内容
-	char * topo_file;
+    stringstream ss; string tmp;
+    ss << num; ss >> tmp;
+    return  tmp;
+}
+
+// Output_File_Info_Row:
+// 0     1    2   ...   n-4   n-3   n-2   n-1
+// s_src src  mid  ...  tar   s_tar flow  cost
+uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out)
+{
+    uint_16 links = of.size();
+    uint_16 i = 1;
+    uint_32 cost = 0;
+
+    out = out + toString(links) + "\n\n";
+
+    for (Output_File_Info_Row r : of)
+    {
+        uint_16 size = r.size();
+        for (i = 1; i < size-3; i++)
+            out = out + toString(r[i]) + " ";
+
+        out = out + toString(customer_local[r[size-4]]) + " " + toString(r[size-2]) + "\n";
+        cost += r[size-1];
+        fb.push_back(r[size-2] - customer_need[r[size-4]]);
+    }
+    out[out.length()-1] = '\0';
+
+    return cost;
+}
+
+static __inline void print_feedback(Feedback &fb)
+{
+    for (short r : fb)
+        printf("%d\n", r);
+}
+
+//你要完成的功能总入口
+void deploy_server(char * topo[MAX_EDGE_NUM], int line_num, char * filename)
+{
     Input_File_Info network_info;
     Input_File_Info customer_info;
     Global_Info g;
@@ -114,8 +162,10 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
     s.push_back(41);
     s.push_back(48);
 
+
     //TODO:
     g.src = s;
+    uint_32 server_cost = g.server_cost * g.src.size();
     // initiate Adjacency Matrix (vSize * vSize).
     Adjacency_Matrix am(vSize, Adjacency_Matrix_Row(vSize, Element{0, 0, 0, COST_INF, COST_INF}));
     make_adjacency_matrix(am, g, network_info, customer_info);
@@ -153,48 +203,25 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
     printf("cost = %d\n", sp[4]);
 #endif
 
-    super_ford_fulkerson(am);
+    Output_File_Info of;
+    super_ford_fulkerson(am, of);
 
-    /*
-    topo_file = (char *)malloc((customer_info.size()+2)*MAX_LINE_LEN);
-    char route_num[20];
-    sprintf(route_num, "%ld", customer_info.size());
-    strncpy(topo_file, route_num, strlen(route_num));
-    strncat(topo_file, "\n", 1);
-    char tempchar[80];
-    for(int i=0;i<customer_info.size();i++)
-    {
-        strncat(topo_file,"\n",1);
-        sprintf(tempchar,"%d",customer_info[i][1]);
-        strncat(topo_file,tempchar,strlen(tempchar));
-        strncat(topo_file," ",1);
-        sprintf(tempchar,"%d",customer_info[i][0]);
-        strncat(topo_file,tempchar,strlen(tempchar));
-        strncat(topo_file," ",1);
-        sprintf(tempchar,"%d",customer_info[i][2]);
-        strncat(topo_file,tempchar,strlen(tempchar));
-    }
-    strcat(topo_file,"\0");
+    // make output.
+    string out;
+    Feedback fb;
+    uint_32 link_cost;
+    link_cost = make_output(of, fb, out);
 
-    输出整数矩阵
-    int size;
-    size = route_info.size();
-    for(i=0;i<size;i++)
-    {
-        for(int j=0;j<4;j++)
-            cout<<route_info[i][j]<<" ";
-        cout<<endl;
-    }
-        //cout<<"消费节点矩阵长度为"<<customer_info.size()<<endl;
-    size = customer_info.size();
-    for(i=0;i<size;i++)
-    {
-        for(int j=0;j<3;j++)
-            cout<<customer_info[i][j]<<" ";
-        cout<<endl;
-    }
-    */
-    topo_file = "21312\n23423\n";
-	// 直接调用输出文件的方法输出到指定文件中(ps请注意格式的正确性，如果有解，第一行只有一个数据；第二行为空；第三行开始才是具体的数据，数据之间用一个空格分隔开)
+    print_feedback(fb);
+    printf("cost = %d\n", link_cost + server_cost);
+
+    char *topo_file;
+    uint_32 len = out.length();
+    topo_file = (char *)malloc((len+1)*sizeof(char));
+    memset(topo_file, 0, len+1);
+    out.copy(topo_file, len, 0);
+
 	write_result(topo_file, filename);
+
+    free(topo_file);
 }

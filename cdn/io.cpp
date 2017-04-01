@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <signal.h>
 
+#include "config.h"
+
 #define MAX_LINE_LEN 55000
 #define _DEBUG
 

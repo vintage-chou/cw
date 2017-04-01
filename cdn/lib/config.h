@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#define _DEBUG
+// #define _DEBUG
 // #define _MY_DEBUG
 
 #define MAX_NODE_SIZE 1000
@@ -35,6 +35,7 @@ typedef std::vector<Element> Adjacency_Matrix_Row;
 typedef std::vector<Adjacency_Matrix_Row> Adjacency_Matrix;
 
 typedef std::vector<uint_16> Src_Tar_Set;
+typedef std::vector<uint_16> Output_File_Info_Row;
 typedef std::vector<std::vector<uint_16> > Output_File_Info;
 typedef std::vector<std::vector<uint_16> > Input_File_Info;
 

@@ -150,30 +150,17 @@ bool shortest_spfa(Adjacency_Matrix const &m, uint_16 src, uint_16 tar, Path_Mat
     return find_path(path, path_map, src, tar);
 }
 
-
 // implement the ford fulkerson from super source to super target.
-void super_ford_fulkerson(Adjacency_Matrix &am)
+void super_ford_fulkerson(Adjacency_Matrix &am, Output_File_Info &of)
 {
     uint_16 network = am.size()-2;
 
-    printf("n = %d\n", network);
     // calculate the ford fulkerson from super source to super customer.
     ford_fulkerson(am, shortest_spfa, network, network+1);
 
-    Output_File_Info of;
-
+    // make the list of path.
+    // super_src -> mid_node_1 -> mid_node_2 -> ... -> mid_node_n -> flow -> cost
     list_path(am, of, network, network+1);
-
-#ifdef _MY_DEBUG
-    for (auto r : of)
-    {
-        for (auto l : r)
-        {
-            printf("%d ", l);
-        }
-        puts("");
-    }
-#endif
 }
 
 // TODO: combine the function "calc_cost" and function "list_path" in one function
