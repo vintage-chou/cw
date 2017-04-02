@@ -35,6 +35,8 @@ typedef vector<short> Feedback;
 
 uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out);
 string toString(uint_16 num);
+void check_srcs(Global_Info const &g, Input_File_Info const &network_info,
+                Input_File_Info const &customer_info, Output_File_Info &of);
 
 // TODO: use map instead !!
 uint_16 customer_need[500];
@@ -142,86 +144,93 @@ static __inline void print_feedback(Feedback &fb)
         printf("%d\n", r);
 }
 
-//你要完成的功能总入口
-void deploy_server(char * topo[MAX_EDGE_NUM], int line_num, char * filename)
+void check_srcs(Global_Info const &g, Input_File_Info const &network_info,
+                Input_File_Info const &customer_info, Output_File_Info &of)
 {
-    Input_File_Info network_info;
-    Input_File_Info customer_info;
-    Global_Info g;
-
-    initiate(topo, line_num, g, network_info, customer_info);
     int vSize = g.network_node + 2;
 
-    Src_Tar_Set s;
-
-    s.push_back(6);
-    s.push_back(7);
-    s.push_back(13);
-    s.push_back(17);
-    s.push_back(35);
-    s.push_back(41);
-    s.push_back(48);
-
-
-    //TODO:
-    g.src = s;
-    uint_32 server_cost = g.server_cost * g.src.size();
     // initiate Adjacency Matrix (vSize * vSize).
     Adjacency_Matrix am(vSize, Adjacency_Matrix_Row(vSize, Element{0, 0, 0, COST_INF, COST_INF}));
     make_adjacency_matrix(am, g, network_info, customer_info);
     // print_matrix(am);
 
-#ifdef _MY_DEBUG
-    printf("targetSize = %u\n", g.tar.size());
-    for (auto v : g.tar)
-    {
-        printf("%u\t", v);
-    }
-    puts("");
-
-    Path_Matrix path;
-    Shortest_Path sp[MAX_NODE_COSUMER_SIZE];
-    printf("size##=%d\n", vSize);
-
-    shortest_dijkstra(am, 2, 4, path, sp);
-
-    printf("dijkstra\n");
-    for (uint_16 v : path)
-    {
-        printf("%hd->", v);
-    }
-    printf("cost = %d\n", sp[4]);
-
-    path.clear();
-    memset(sp, COST_INF, MAX_NODE_COSUMER_SIZE);
-    shortest_spfa(am, 2, 4, path, sp);
-    printf("SPFA\n");
-    for (uint_16 v : path)
-    {
-        printf("%hd->", v);
-    }
-    printf("cost = %d\n", sp[4]);
-#endif
-
-    Output_File_Info of;
     super_ford_fulkerson(am, of);
+}
 
-    // make output.
+void create_one_srcs(Global_Info &g)
+{
+    g.src.push_back(6);
+    g.src.push_back(7);
+    g.src.push_back(13);
+    g.src.push_back(17);
+    g.src.push_back(35);
+    g.src.push_back(41);
+    g.src.push_back(48);
+}
+
+void deploy_server(char * topo[MAX_EDGE_NUM], int line_num, char * filename)
+{
+    Input_File_Info network_info;
+    Input_File_Info customer_info;
+    Global_Info g;
+    Output_File_Info of;
     string out;
     Feedback fb;
-    uint_32 link_cost;
+    uint_32 link_cost, server_cost, total_cost;
+
+    initiate(topo, line_num, g, network_info, customer_info);
+
+    create_one_srcs(g);
+
+    check_srcs(g, network_info, customer_info, of);
+
+    // make feedback.
+    server_cost = g.server_cost * g.src.size();
     link_cost = make_output(of, fb, out);
+    total_cost = server_cost + link_cost;
 
     print_feedback(fb);
-    printf("cost = %d\n", link_cost + server_cost);
+    printf("Total Cost = %d\n", total_cost);
 
+    // make output file.
     char *topo_file;
     uint_32 len = out.length();
     topo_file = (char *)malloc((len+1)*sizeof(char));
     memset(topo_file, 0, len+1);
     out.copy(topo_file, len, 0);
-
 	write_result(topo_file, filename);
 
     free(topo_file);
+
+    #ifdef _MY_DEBUG
+        printf("targetSize = %u\n", g.tar.size());
+        for (auto v : g.tar)
+        {
+            printf("%u\t", v);
+        }
+        puts("");
+
+        Path_Matrix path;
+        Shortest_Path sp[MAX_NODE_COSUMER_SIZE];
+        printf("size##=%d\n", vSize);
+
+        shortest_dijkstra(am, 2, 4, path, sp);
+
+        printf("dijkstra\n");
+        for (uint_16 v : path)
+        {
+            printf("%hd->", v);
+        }
+        printf("cost = %d\n", sp[4]);
+
+        path.clear();
+        memset(sp, COST_INF, MAX_NODE_COSUMER_SIZE);
+        shortest_spfa(am, 2, 4, path, sp);
+        printf("SPFA\n");
+        for (uint_16 v : path)
+        {
+            printf("%hd->", v);
+        }
+        printf("cost = %d\n", sp[4]);
+    #endif
 }
