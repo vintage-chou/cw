@@ -39,8 +39,8 @@ void check_srcs(Global_Info const &g, Input_File_Info const &network_info,
                 Input_File_Info const &customer_info, Output_File_Info &of);
 
 // TODO: use map instead !!
-uint_16 customer_need[MAX_NODE_COSUMER_SIZE];
-uint_16 customer_local[MAX_NODE_COSUMER_SIZE];
+uint_16 customer_need[MAX_NODE_SIZE];
+uint_16 customer_local[MAX_NODE_SIZE];
 
 void initiate(char *topo[MAX_EDGE_NUM], int line_num, Global_Info &g,
               Input_File_Info &network_info, Input_File_Info &customer_info)
@@ -153,7 +153,7 @@ uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out)
     return cost;
 }
 
-static __inline void print_feedback(Feedback &fb)
+static __inline void print_feedback(Feedback const &fb)
 {
     for (auto r : fb)
     {
@@ -180,14 +180,11 @@ void check_srcs(Global_Info const &g, Input_File_Info const &network_info,
 
 void create_one_srcs(Global_Info &g)
 {
-    g.src.push_back(6);
-    g.src.push_back(7);
-    g.src.push_back(13);
-    g.src.push_back(17);
-    g.src.push_back(35);
-    g.src.push_back(41);
-    g.src.push_back(48);
 
+    g.src.push_back(17);
+    g.src.push_back(30);
+    g.src.push_back(32);
+    g.src.push_back(43);
 }
 
 void deploy_server(char * topo[MAX_EDGE_NUM], int line_num, char * filename)

@@ -41,7 +41,8 @@ static void shift(std::vector<char> &f, int n)
 
 // from Set s, combin m elements.
 // using 0-1 vector algorithm.
-void combin(Set const &s, Sets &ss, int m) {
+void combin(Set const &s, Sets &ss, int m)
+{
 
     int size = s.size();
     int i, count = 1;
