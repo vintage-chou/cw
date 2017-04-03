@@ -2,11 +2,74 @@
 #include "config.h"
 #include <vector>
 #include <queue>
-#include <stack>
 
 bool find_path(Path_Matrix &path, Path_Matrix const &path_map, uint_16 src, uint_16 tar);
-void calc_cost(Adjacency_Matrix const &am, Path_Matrix const &p, uint_16 &flow, uint_16 &cost);
-void list_path(Adjacency_Matrix const &am, Output_File_Info &of, uint_16 src, uint_16 tar);
+void calc_cost(Adjacency_Matrix &am, Path_Matrix const &p, uint_16 &flow, uint_16 &cost);
+void list_path(Adjacency_Matrix &am, Output_File_Info &of, uint_16 src, uint_16 tar);
+static char done(std::vector<char> const &f, int m);
+static void shift(std::vector<char> &f, int n);
+
+static char done(std::vector<char> const &f, int m)
+{
+    int size = f.size();
+    char re = 1;
+    for (int i = 1; i <= m; i++)
+        re &= f[size-i];
+
+    return re;
+}
+
+static void shift(std::vector<char> &f, int n)
+{
+    int size = f.size();
+    int count = 0;
+    bool flag = false;
+
+    for (int i = 0; i < n; i++)
+    {
+        if (f[i])
+        {
+            f[i] = 0;
+            count++;
+            flag = true;
+        }
+    }
+
+    for (int i = 0; i < count; i++)
+        f[i] = 1;
+}
+
+// from Set s, combin m elements.
+// using 0-1 vector algorithm.
+void combin(Set const &s, Sets &ss, int m) {
+
+    int size = s.size();
+    int i, count = 1;
+    std::vector<char> f(size, 0);
+
+    if (m == 0) return;
+
+    for (i = 0; i < m; i++)
+        f[i] = 1;
+
+    do {
+        ss.push_back(s);
+
+        for (i = 0; i < size-1; i++)
+        {
+            if (f[i] && !f[i+1])
+            {
+                f[i] = 0;
+                f[i+1] = 1;
+                break;
+            }
+        }
+
+        shift(f, i);
+    }while ( !done(f, m));
+
+    ss.push_back(s);
+}
 
 // shortest algorithm -- dijkstra
 bool shortest_dijkstra(Adjacency_Matrix const &m, uint_16 src, uint_16 tar, Path_Matrix &path, Shortest_Path shortest_length[])
@@ -164,7 +227,7 @@ void super_ford_fulkerson(Adjacency_Matrix &am, Output_File_Info &of)
 }
 
 // TODO: combine the function "calc_cost" and function "list_path" in one function
-void calc_cost(Adjacency_Matrix const &am, Path_Matrix const &p, uint_16 &flow, uint_16 &cost)
+void calc_cost(Adjacency_Matrix &am, Path_Matrix const &p, uint_16 &flow, uint_16 &cost)
 {
     uint_16 size = p.size()-1;
 
@@ -176,11 +239,17 @@ void calc_cost(Adjacency_Matrix const &am, Path_Matrix const &p, uint_16 &flow, 
             flow = am[p[i]][p[i+1]].flow;
         cost += am[p[i]][p[i+1]].origin_cost;
     }
+
+    for (uint_16 i = 0; i < size; i++)
+    {
+        am[p[i]][p[i+1]].flow -=flow;
+    }
+
     cost *= flow;
 }
 
 // TODO:
-void list_path(Adjacency_Matrix const &am, Output_File_Info &of, uint_16 src, uint_16 tar)
+void list_path(Adjacency_Matrix &am, Output_File_Info &of, uint_16 src, uint_16 tar)
 {
     std::vector<uint_16> row;
     uint_16 i, j = 0;
@@ -292,7 +361,7 @@ void print_matrix(Adjacency_Matrix const &am)
         for (auto l : p)
         {
             // printf("%d,%d ", l.bandwidth, l.cost);
-            printf("%d ", l.origin_cost);
+            printf("%d ", l.flow);
         }
         printf("\n");
     }

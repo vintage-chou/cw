@@ -7,6 +7,7 @@
 // #define _MY_DEBUG
 
 #define MAX_NODE_SIZE 1000
+#define MAX_NODE_COSUMER_SIZE 500
 
 #define COST_INF 120
 #define BANDWIDTH_INF (uint_16(-1))

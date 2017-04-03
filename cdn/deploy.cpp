@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include <set>
 #include <iostream>
 #include <string.h>
 
@@ -29,9 +30,8 @@ typedef struct Global_Info_t {
     Src_Tar_Set tar;
 }Global_Info;
 
-#define MAX_NODE_COSUMER_SIZE 1500
 
-typedef vector<short> Feedback;
+typedef vector<vector <short> > Feedback;
 
 uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out);
 string toString(uint_16 num);
@@ -39,8 +39,8 @@ void check_srcs(Global_Info const &g, Input_File_Info const &network_info,
                 Input_File_Info const &customer_info, Output_File_Info &of);
 
 // TODO: use map instead !!
-uint_16 customer_need[500];
-uint_16 customer_local[500];
+uint_16 customer_need[MAX_NODE_COSUMER_SIZE];
+uint_16 customer_local[MAX_NODE_COSUMER_SIZE];
 
 void initiate(char *topo[MAX_EDGE_NUM], int line_num, Global_Info &g,
               Input_File_Info &network_info, Input_File_Info &customer_info)
@@ -120,6 +120,10 @@ uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out)
     uint_16 links = of.size();
     uint_16 i = 1;
     uint_32 cost = 0;
+    set<uint_16> node;
+    set<uint_16>::iterator it;
+    uint_32 cost_map[MAX_NODE_SIZE] = {0};
+    vector<short> fbr;
 
     out = out + toString(links) + "\n\n";
 
@@ -131,8 +135,19 @@ uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out)
 
         out = out + toString(customer_local[r[size-4]]) + " " + toString(r[size-2]) + "\n";
         cost += r[size-1];
-        fb.push_back(r[size-2] - customer_need[r[size-4]]);
+        cost_map[r[size-4]] += r[size-2];
+        node.insert(r[size-4]);
     }
+
+    for (it = node.begin(); it != node.end(); it++)
+    {
+        fbr.push_back(*it);
+        fbr.push_back(cost_map[*it]);
+        fbr.push_back(cost_map[*it] - customer_need[*it]);
+        fb.push_back(fbr);
+        fbr.clear();
+    }
+
     out[out.length()-1] = '\0';
 
     return cost;
@@ -140,8 +155,12 @@ uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out)
 
 static __inline void print_feedback(Feedback &fb)
 {
-    for (short r : fb)
-        printf("%d\n", r);
+    for (auto r : fb)
+    {
+        for (short l : r)
+            printf("%d ", l);
+        puts("");
+    }
 }
 
 void check_srcs(Global_Info const &g, Input_File_Info const &network_info,
@@ -155,6 +174,8 @@ void check_srcs(Global_Info const &g, Input_File_Info const &network_info,
     // print_matrix(am);
 
     super_ford_fulkerson(am, of);
+
+    // print_matrix(am);
 }
 
 void create_one_srcs(Global_Info &g)
@@ -166,6 +187,7 @@ void create_one_srcs(Global_Info &g)
     g.src.push_back(35);
     g.src.push_back(41);
     g.src.push_back(48);
+
 }
 
 void deploy_server(char * topo[MAX_EDGE_NUM], int line_num, char * filename)
