@@ -7,9 +7,12 @@
 #include <set>
 #include <iostream>
 #include <string.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include <string>
 #include <sstream>
+#include "immune.h"
 
 #define MAX_LINE_LEN 55000
 
@@ -30,10 +33,7 @@ typedef struct Global_Info_t {
     Src_Tar_Set tar;
 }Global_Info;
 
-
-typedef vector<vector <short> > Feedback;
-
-uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out);
+uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out, Global_Info const &g);
 string toString(uint_16 num);
 void check_srcs(Global_Info const &g, Input_File_Info const &network_info,
                 Input_File_Info const &customer_info, Output_File_Info &of);
@@ -41,6 +41,8 @@ void check_srcs(Global_Info const &g, Input_File_Info const &network_info,
 // TODO: use map instead !!
 uint_16 customer_need[MAX_NODE_SIZE];
 uint_16 customer_local[MAX_NODE_SIZE];
+//double start_time,current_time;
+struct timeval s_time, e_time;
 
 void initiate(char *topo[MAX_EDGE_NUM], int line_num, Global_Info &g,
               Input_File_Info &network_info, Input_File_Info &customer_info)
@@ -115,14 +117,15 @@ string toString(uint_16 num)
 // Output_File_Info_Row:
 // 0     1    2   ...   n-4   n-3   n-2   n-1
 // s_src src  mid  ...  tar   s_tar flow  cost
-uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out)
+uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out, Global_Info const &g)
 {
     uint_16 links = of.size();
     uint_16 i = 1;
     uint_32 cost = 0;
     set<uint_16> node;
     set<uint_16>::iterator it;
-    uint_32 cost_map[MAX_NODE_SIZE] = {0};
+    uint_32 flow_map[MAX_NODE_SIZE] = {0};
+
     vector<short> fbr;
 
     out = out + toString(links) + "\n\n";
@@ -135,25 +138,47 @@ uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out)
 
         out = out + toString(customer_local[r[size-4]]) + " " + toString(r[size-2]) + "\n";
         cost += r[size-1];
-        cost_map[r[size-4]] += r[size-2];
+        flow_map[r[size-4]] += r[size-2];
         node.insert(r[size-4]);
     }
 
+    // get more detils
+
     for (it = node.begin(); it != node.end(); it++)
     {
+#if DETIL_FEEDBACK
         fbr.push_back(*it);
-        fbr.push_back(cost_map[*it]);
-        fbr.push_back(cost_map[*it] - customer_need[*it]);
+        fbr.push_back(flow_map[*it]);
+#endif
+        fbr.push_back(flow_map[*it] - customer_need[*it]);
+#if DETIL_FEEDBACK
         fb.push_back(fbr);
         fbr.clear();
+#endif
     }
+
+#if DETIL_FEEDBACK == 0
+    int sum = 0;
+    uint_16 k = 0;
+    for (k = 0; k < fbr.size(); k++)
+    {
+        sum += fbr[k];
+    }
+
+    vector<short> r;
+    (sum < 0) || (k < g.customer_node) ? r.push_back(0) : r.push_back(1);
+
+    r.push_back(cost);
+
+    fb.push_back(r);
+#endif
 
     out[out.length()-1] = '\0';
 
     return cost;
 }
 
-static __inline void print_feedback(Feedback const &fb)
+static __inline void print_feedback(Feedback &fb)
 {
     for (auto r : fb)
     {
@@ -178,20 +203,23 @@ void check_srcs(Global_Info const &g, Input_File_Info const &network_info,
     // print_matrix(am);
 }
 
-void create_one_srcs(Global_Info &g)
+void create_one_srcs(Global_Info &g, vector<uint_16> r)
 {
-
-    g.src.push_back(17);
-    g.src.push_back(30);
-    g.src.push_back(32);
-    g.src.push_back(43);
+    g.src.clear();
+    for (uint_16 i = 0; i < r.size(); i++)
+    {
+       if (r[i])
+            g.src.push_back(i);
+    }
 }
 
 void deploy_server(char * topo[MAX_EDGE_NUM], int line_num, char * filename)
 {
+    gettimeofday(&s_time, NULL);
     Input_File_Info network_info;
     Input_File_Info customer_info;
     Global_Info g;
+
     Output_File_Info of;
     string out;
     Feedback fb;
@@ -199,18 +227,51 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num, char * filename)
 
     initiate(topo, line_num, g, network_info, customer_info);
 
-    create_one_srcs(g);
+    immune teach(customer_info, g.network_node, g.server_cost);
+    teach.imCreateGene();
+    teach.imPrintInfo();
+    gettimeofday(&e_time, NULL);
 
-    check_srcs(g, network_info, customer_info, of);
+    int ccc = 10;
+    while(ccc--)
+    {
+        while((e_time.tv_sec-s_time.tv_sec)<30)
+        {
+            //teach.imSendSpecies();
+            printf("111111\n");
+            //teach.imAfinity(super_ford_fulkerson(am, s));
+            teach.imDensity();
+            printf("222222\n");
+            teach.imBreedProbability();
+            printf("333333\n");
+            teach.imGeneChoose();
+            printf("444444\n");
+            teach.imGeneMix();
+            printf("555555\n");
+            teach.imGeneAberrance();
+            printf("666666\n");
+            gettimeofday(&e_time, NULL);
+            printf("777777\n");
+        }
+        for ( vector<uint_16> r : teach.im_Gen_Gene)
+        {
+            create_one_srcs(g, r);
 
-    // make feedback.
-    server_cost = g.server_cost * g.src.size();
-    link_cost = make_output(of, fb, out);
-    total_cost = server_cost + link_cost;
+            check_srcs(g, network_info, customer_info, of);
+            //print_matrix();
 
-    print_feedback(fb);
-    printf("Total Cost = %d\n", total_cost);
+            // make feedback.
+            server_cost = g.server_cost * g.src.size();
+            link_cost = make_output(of, fb, out, g);
+            total_cost = server_cost + link_cost;
 
+            printf("Total Cost = %d\n", total_cost);
+            of.clear();
+        }
+        print_feedback(fb);
+        //teach.im_updateGen_Gene(fb);
+        //printf("ccc = %d\n",ccc);
+    }
     // make output file.
     char *topo_file;
     uint_32 len = out.length();
@@ -230,7 +291,7 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num, char * filename)
         puts("");
 
         Path_Matrix path;
-        Shortest_Path sp[MAX_NODE_COSUMER_SIZE];
+        Shortest_Path sp[MAX_NODE_SIZE];
         printf("size##=%d\n", vSize);
 
         shortest_dijkstra(am, 2, 4, path, sp);
@@ -243,7 +304,7 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num, char * filename)
         printf("cost = %d\n", sp[4]);
 
         path.clear();
-        memset(sp, COST_INF, MAX_NODE_COSUMER_SIZE);
+        memset(sp, COST_INF, MAX_NODE_SIZE);
         shortest_spfa(am, 2, 4, path, sp);
         printf("SPFA\n");
         for (uint_16 v : path)

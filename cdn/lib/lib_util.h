@@ -8,9 +8,8 @@
 typedef std::vector<uint_16> Path_Matrix;
 // TODO: optimalize the type of Shortest_Path
 typedef uint_16 Shortest_Path;
-
 typedef std::vector<short> Set;
-typedef std::vector<std::vector<short> > Sets;
+typedef std::vector<Set> Sets;
 
 typedef bool (*Shortest_Func) (Adjacency_Matrix const &, uint_16, uint_16, Path_Matrix &, Shortest_Path []);
 

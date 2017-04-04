@@ -2,12 +2,14 @@
 #define __CONFIG_H__
 
 #include <vector>
+using namespace std;
 
 // #define _DEBUG
 // #define _MY_DEBUG
 
+#define DETIL_FEEDBACK 0
+
 #define MAX_NODE_SIZE 1000
-// #define MAX_NODE_COSUMER_SIZE 500
 
 #define COST_INF 120
 #define BANDWIDTH_INF (uint_16(-1))
@@ -32,13 +34,23 @@ typedef struct Element_t
     char origin_cost;
 } Element;
 
-typedef std::vector<Element> Adjacency_Matrix_Row;
-typedef std::vector<Adjacency_Matrix_Row> Adjacency_Matrix;
+typedef struct _Affinity_Info
+{
+  uint_16 line_cost;
+  uint_16 flow_err;
+}Affinity_Info;
 
-typedef std::vector<uint_16> Src_Tar_Set;
-typedef std::vector<uint_16> Output_File_Info_Row;
-typedef std::vector<std::vector<uint_16> > Output_File_Info;
-typedef std::vector<std::vector<uint_16> > Input_File_Info;
+typedef vector<vector <short> > Feedback;
 
+typedef vector<Element> Adjacency_Matrix_Row;
+typedef vector<Adjacency_Matrix_Row> Adjacency_Matrix;
+
+typedef vector<uint_16> Src_Tar_Set;
+typedef vector<uint_16> Output_File_Info_Row;
+typedef vector<vector<uint_16> > Output_File_Info;
+typedef vector<vector<uint_16> > Input_File_Info;
+
+typedef vector<vector<uint_16> > FLOW;
+typedef vector<vector<uint_16> > CUSTOMER;
 
 #endif
