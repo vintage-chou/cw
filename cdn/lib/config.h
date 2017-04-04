@@ -23,7 +23,8 @@ using namespace std;
 
 typedef unsigned char uint_8;
 typedef unsigned short uint_16;
-typedef unsigned long uint_32 ;
+typedef unsigned long uint_32;
+typedef unsigned long long uint_64 ;
 
 typedef struct Element_t
 {
@@ -40,7 +41,7 @@ typedef struct _Affinity_Info
   uint_16 flow_err;
 }Affinity_Info;
 
-typedef vector<vector <uint_16> > Feedback;
+typedef vector<vector <uint_32> > Feedback;
 
 typedef vector<Element> Adjacency_Matrix_Row;
 typedef vector<Adjacency_Matrix_Row> Adjacency_Matrix;

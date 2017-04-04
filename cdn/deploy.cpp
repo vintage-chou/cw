@@ -124,7 +124,7 @@ uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out, Global_Info
 {
     uint_16 links = of.size();
     uint_16 i = 1;
-    uint_32 cost = 0;
+    uint_64 cost = 0;
     set<uint_16> node;
     set<uint_16>::iterator it;
     uint_32 flow_map[MAX_NODE_SIZE] = {0};
@@ -146,7 +146,6 @@ uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out, Global_Info
     }
 
     // get more detils
-
     for (it = node.begin(); it != node.end(); it++)
     {
 #if DETIL_FEEDBACK
@@ -225,18 +224,17 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num, char * filename)
 
     Output_File_Info of;
     string out;
+    string final_out;
     Feedback fb;
-    uint_32 link_cost, server_cost, total_cost;
+    uint_32 link_cost, server_cost, total_cost, min_total_cost = uint_32(-1);
 
     initiate(topo, line_num, g, network_info, customer_info);
 
     immune teach(customer_info, g.network_node, g.server_cost);
     teach.imCreateGene();
-    cout<<"Create****************************************"<<endl;
-    teach.imPrintInfo(teach.im_Gen_Gene);
     gettimeofday(&e_time, NULL);
 
-	while(true)//(e_time.tv_sec-s_time.tv_sec)<30)
+	while ((e_time.tv_sec-s_time.tv_sec)<85)
 	{
 		//send to 最小费用最大流
 		for ( vector<uint_16> r : teach.im_Gen_Gene)
@@ -246,33 +244,38 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num, char * filename)
 			server_cost = g.server_cost * g.src.size();
 			link_cost = make_output(of, fb, out, g);
 			total_cost = server_cost + link_cost;
-			printf("count = %lu\n", g.src.size());
-			printf("Total Cost = %lu\n", total_cost);
+			if (min_total_cost > total_cost)
+			{
+				min_total_cost = total_cost;
+				final_out = out;
+			}
+			// printf("count = %lu\n", g.src.size());
+			// printf("Total Cost = %lu\n", total_cost);
 			of.clear();
 		}
 		//训练基因
-		print_feedback(fb);
+		// print_feedback(fb);
 		teach.imAfinity(fb);
 		teach.imDensity();
 		teach.imBreedProbability();
 		teach.imGeneChoose();
 		teach.imGeneMix();
-	    cout<<"Mix****************************************"<<endl;
-	    teach.imPrintInfo(teach.im_Gen_Gene_Father);
+	    //teach.imPrintInfo(teach.im_Gen_Gene_Father);
 		teach.imGeneAberrance();
-	    cout<<"Aberrance****************************************"<<endl;
-	    teach.imPrintInfo(teach.im_Gen_Gene);
+	    //teach.imPrintInfo(teach.im_Gen_Gene);
 		fb.clear();
 		gettimeofday(&e_time, NULL);
+
 	}
 
     // make output file.
     char *topo_file;
-    uint_32 len = out.length();
+    uint_32 len = final_out.length();
     topo_file = (char *)malloc((len+1)*sizeof(char));
     memset(topo_file, 0, len+1);
-    out.copy(topo_file, len, 0);
+    final_out.copy(topo_file, len, 0);
 	write_result(topo_file, filename);
+	// printf("Final Total Cost = %lu\n", min_total_cost);
 
     free(topo_file);
 
