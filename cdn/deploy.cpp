@@ -29,6 +29,7 @@ typedef struct Global_Info_t {
     int links;
     int customer_node;
     int server_cost;
+    uint_32 customer_need;
     Src_Tar_Set src;
     Src_Tar_Set tar;
 }Global_Info;
@@ -52,6 +53,7 @@ void initiate(char *topo[MAX_EDGE_NUM], int line_num, Global_Info &g,
 
     // fill in the Global infomation.
     g.line_num = line_num;
+    g.customer_need = 0;
     sscanf(topo[scan++], "%d %d %d", &g.network_node, &g.links, &g.customer_node);
     sscanf(topo[++scan], "%d", &g.server_cost);
     ++scan;
@@ -68,6 +70,7 @@ void initiate(char *topo[MAX_EDGE_NUM], int line_num, Global_Info &g,
     {
         sscanf(topo[scan], "%hd %hd %hd", &temp[0], &temp[1], &temp[2]);
         g.tar.push_back((uint_16)temp[1]);
+        g.customer_need += temp[2];
         customer_need[temp[1]] = temp[2];
         customer_local[temp[1]] = temp[0];
         customer_info.push_back(temp);
@@ -149,12 +152,11 @@ uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out, Global_Info
 #if DETIL_FEEDBACK
         fbr.push_back(*it);
         fbr.push_back(flow_map[*it]);
-#endif
         fbr.push_back(flow_map[*it] - customer_need[*it]);
-#if DETIL_FEEDBACK
         fb.push_back(fbr);
         fbr.clear();
 #endif
+        fbr.push_back(flow_map[*it]);
     }
 
 #if DETIL_FEEDBACK == 0
@@ -165,10 +167,11 @@ uint_32 make_output(Output_File_Info &of, Feedback &fb, string &out, Global_Info
         sum += fbr[k];
     }
 
-    vector<short> r;
-    (sum < 0) || (k < g.customer_node) ? r.push_back(0) : r.push_back(1);
+    vector<uint_16> r;
+    // (sum < 0) || (k < g.customer_node) ? r.push_back(0) : r.push_back(1);
 
     r.push_back(cost);
+    r.push_back(g.customer_need-sum);
 
     fb.push_back(r);
 #endif
@@ -229,49 +232,40 @@ void deploy_server(char * topo[MAX_EDGE_NUM], int line_num, char * filename)
 
     immune teach(customer_info, g.network_node, g.server_cost);
     teach.imCreateGene();
-    teach.imPrintInfo();
+    cout<<"Create****************************************"<<endl;
+    teach.imPrintInfo(teach.im_Gen_Gene);
     gettimeofday(&e_time, NULL);
 
-    int ccc = 10;
-    while(ccc--)
-    {
-        while((e_time.tv_sec-s_time.tv_sec)<30)
-        {
-            //teach.imSendSpecies();
-            printf("111111\n");
-            //teach.imAfinity(super_ford_fulkerson(am, s));
-            teach.imDensity();
-            printf("222222\n");
-            teach.imBreedProbability();
-            printf("333333\n");
-            teach.imGeneChoose();
-            printf("444444\n");
-            teach.imGeneMix();
-            printf("555555\n");
-            teach.imGeneAberrance();
-            printf("666666\n");
-            gettimeofday(&e_time, NULL);
-            printf("777777\n");
-        }
-        for ( vector<uint_16> r : teach.im_Gen_Gene)
-        {
-            create_one_srcs(g, r);
+	while(true)//(e_time.tv_sec-s_time.tv_sec)<30)
+	{
+		//send to 最小费用最大流
+		for ( vector<uint_16> r : teach.im_Gen_Gene)
+		{
+			create_one_srcs(g, r);
+			check_srcs(g, network_info, customer_info, of);
+			server_cost = g.server_cost * g.src.size();
+			link_cost = make_output(of, fb, out, g);
+			total_cost = server_cost + link_cost;
+			printf("count = %lu\n", g.src.size());
+			printf("Total Cost = %lu\n", total_cost);
+			of.clear();
+		}
+		//训练基因
+		print_feedback(fb);
+		teach.imAfinity(fb);
+		teach.imDensity();
+		teach.imBreedProbability();
+		teach.imGeneChoose();
+		teach.imGeneMix();
+	    cout<<"Mix****************************************"<<endl;
+	    teach.imPrintInfo(teach.im_Gen_Gene_Father);
+		teach.imGeneAberrance();
+	    cout<<"Aberrance****************************************"<<endl;
+	    teach.imPrintInfo(teach.im_Gen_Gene);
+		fb.clear();
+		gettimeofday(&e_time, NULL);
+	}
 
-            check_srcs(g, network_info, customer_info, of);
-            //print_matrix();
-
-            // make feedback.
-            server_cost = g.server_cost * g.src.size();
-            link_cost = make_output(of, fb, out, g);
-            total_cost = server_cost + link_cost;
-
-            printf("Total Cost = %d\n", total_cost);
-            of.clear();
-        }
-        print_feedback(fb);
-        //teach.im_updateGen_Gene(fb);
-        //printf("ccc = %d\n",ccc);
-    }
     // make output file.
     char *topo_file;
     uint_32 len = out.length();

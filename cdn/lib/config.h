@@ -40,7 +40,7 @@ typedef struct _Affinity_Info
   uint_16 flow_err;
 }Affinity_Info;
 
-typedef vector<vector <short> > Feedback;
+typedef vector<vector <uint_16> > Feedback;
 
 typedef vector<Element> Adjacency_Matrix_Row;
 typedef vector<Adjacency_Matrix_Row> Adjacency_Matrix;

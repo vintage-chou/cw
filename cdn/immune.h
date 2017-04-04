@@ -71,7 +71,7 @@ public:
   bool im_updateGen_Gene(Feedback const &fb);
 
   //bool imEvalAll();           //�������л�����Ӧ��
-  bool imAfinity(T link_cost, T flow_err);           //�������л����׺Ͷ�
+  bool imAfinity(vector<T> feedback);           //�������л����׺Ͷ�
   //bool imAfinityOne(T &Gene);    //����ĳһ�������׺Ͷ�
   bool imDensity();           //������Ⱥ�ܶ�/Ũ��
   int imDensityOne(T &Gene);    //����ĳһ������ͬ�������������ƶ�
@@ -80,7 +80,7 @@ public:
   //bool imPutGenetoMemory(T Gene);   //��һ��������������ϸ����
   //bool imGetGenefromMemory();   //�Ӽ���ϸ���л�ȡ����
 
-  void imPrintInfo();
+  void imPrintInfo(vector<T> species);
 
   vector<T> im_Gen_Gene;  //��Ⱥ��Ϣ
   vector<T> im_memory;  //����ϸ��
@@ -182,7 +182,7 @@ bool immune::im_updateGen_Gene(Feedback const &fb)
 	{
 		im_Gen_Gene[i] = temp[i];
 	}
-	for( i; i<_GENERATION_AMOUNT; i++)
+	for( ; i<_GENERATION_AMOUNT; i++)
 	{
 		it_v = &im_Gen_Gene[i];
 		rand_index=rand()%(ginfo.im_maxserver-MIN_SOLUTION)+MIN_SOLUTION;
@@ -240,36 +240,30 @@ bool immune::im_memoryGeneSort()
 {
 	int i;
 	Map_imProbability *p = new Map_imProbability[_GENERATION_AMOUNT];
-	printf("memory1\n");
 	for(i=0;i<_GENERATION_AMOUNT;i++)
 	{
 		p[i].i = i;
 		p[i].vProbability = im_memoryProbability[i];
 	}
-	printf("memory2\n");
 	sort(p,p+_GENERATION_AMOUNT,comp1);
-	printf("memory2.1\n");
 	vector<T> temp(_GENERATION_AMOUNT);			//����vector
-	printf("memory3\n");
 	for(i=0;i<_GENERATION_AMOUNT;i++)
 	{
 		//temp[i].assign(im_memory[p[i].i].begin(),im_memory[p[i].i].end());
 		temp[i] = im_memory[p[i].i];
 	}
-	printf("memory4\n");
 	for(i=0;i<_GENERATION_AMOUNT;i++)	//���������ļ���������������������
 	{
 		//im_memory[i].assign(temp[i].begin(),temp[i].end());
 		im_memory[i] = temp[i];
 	}
-	printf("memory5\n");
-	delete p;
+	delete[] p;
 	p = NULL;
+	return true;
 }
 
 bool immune::imGeneChoose()        //����ѡ��
 {
-printf("choose0\n");
 		int i,j,size;
 		imGeneSort();		//�ȶԵ�ǰ����Ⱥ����һ��������������������Ϊ������ֳ����
 
@@ -278,11 +272,9 @@ printf("choose0\n");
 		{
 			im_Gen_Gene_Father.push_back(im_Gen_Gene[i]);
 		}
-		printf("choose1\n");
 
 		if(im_memory.empty())
 		{
-		printf("choose2\n");
 			im_memory.clear();
 			im_memoryProbability.clear();
 			for(i=0;i<im_m;i++)	//ȡǰim_m�����뵽��������
@@ -296,7 +288,6 @@ printf("choose0\n");
 			size = im_memory.size();
 			if((_GENERATION_AMOUNT-size)<im_m)
 			{
-			printf("choose3\n");
 				for(i = 0,j= _GENERATION_AMOUNT-im_m-1;i<im_m && j<_GENERATION_AMOUNT; i++,j++)
 				{
 					im_memory[j] = im_Gen_Gene[i];
@@ -305,17 +296,14 @@ printf("choose0\n");
 			}
 			else
 			{
-			printf("choose4\n");
 				for(i = 0;i<im_m; i++)
 				{
 					im_memory.push_back(im_Gen_Gene[i]);
 					im_memoryProbability.push_back(im_Probability[i]);
 				}
-			printf("choose5\n");
 			}
 
 			im_memoryGeneSort();		//���¼�����
-			printf("choose6\n");
 			sort(im_memoryProbability.begin(),im_memoryProbability.end(),comp2);	//���¼�������Ӧ�ĸ���
 		}
     return true;
@@ -330,26 +318,19 @@ bool immune::imGeneSort()								//��Ⱥ���򣬰��������
 		p[i].i = i;
 		p[i].vProbability = im_Probability[i];
 	}
-	printf("sort1\n");
 	sort(p,p+_GENERATION_AMOUNT,comp1);
-	printf("sort2\n");
 	vector<T> temp(_GENERATION_AMOUNT);			//����vector
-	printf("2.1\n");
 	for(i=0;i<_GENERATION_AMOUNT;i++)
 	{
-		printf("p[i].i = %d\t temp.size = %d\t im_Gen_Gene.size = %d\n",p[i].i, temp.size(), im_Gen_Gene.size() );
 		temp[i]=im_Gen_Gene[p[i].i];
 	}
-	printf("sort3\n");
 	for(i=0;i<_GENERATION_AMOUNT;i++)	//������������Ⱥ���Ƶ���ʼ��Ⱥ��
 	{
 		im_Gen_Gene[i] = temp[i];
 	}
-	printf("sort4\n");
-	delete p;
+	delete[] p;
 	p = NULL;
 	sort(im_Probability.begin(),im_Probability.end(),comp2);	//����Ӧ����Ⱥ�������ʽ�������
-	printf("sort5\n");
   return true;
 }
 
@@ -358,9 +339,8 @@ bool immune::imGeneSort()								//��Ⱥ���򣬰��������
 bool immune::imGeneMix()
 {
 	srand(time(NULL));
-	printf("mix1\n");
-  	vector<T> temp(im_N,T(ginfo.im_number,0));			//�����ĸ�����Ⱥ
-	double pick;							//���������Ľ�������
+  	vector<T> temp(im_N, T(ginfo.im_number, 0));			//�����ĸ�����Ⱥ
+	//double pick;							//���������Ľ�������
 	int i, j, size, cnt;
 	int iFather;                         //���׵Ĵ���
 	int iMother;                         //ĸ�׵Ĵ���
@@ -372,24 +352,21 @@ bool immune::imGeneMix()
 	int limit_server_num;
 	int rand_delete_index;
 	size = im_Gen_Gene_Father[0].size();
-	printf("mix2\n");
 	for(i = 0; i < _P_GENE_MIX; i++)
 	{
 		// printf("i=%d  temp.size()=%d\n",i,temp.size());
-		printf("_P_GENE_MIX=%d\n",_P_GENE_MIX);
-		pick = rand()/(double)(RAND_MAX);
-		if(pick>ginfo.pcross)
-			continue;
+		//pick = rand()/(double)(RAND_MAX);
+		//if(pick>ginfo.pcross)
+		//	continue;
 		iFather=_ITEMP;
 		do
 		{
 			iMother = _ITEMP;
 		}while(iMother == iFather);
-		Child1.reserve(size);         //��ʼ����Ů�ļ�����
-		Child2.reserve(size);
+		//Child1.reserve(size);         //��ʼ����Ů�ļ�����
+		//Child2.reserve(size);
 		Child1.clear();
 		Child2.clear();
-		printf("mix3\n");
 		for(int k = 0; k<rand_num; k++)		//��������rand_num���±�
 		{
 			rand_index[k] = rand()%size;
@@ -402,51 +379,96 @@ bool immune::imGeneMix()
 				}
 			}
 		}
-		printf("mix4\n");
 		sort(rand_index, rand_index+rand_num);
-		printf("mix4.1\n");
 		FatherBK = im_Gen_Gene_Father[iFather];
 		MotherBK = im_Gen_Gene_Father[iMother];
-		printf("mix4.2\n");
-		for(int k = 0; k<rand_num; k++)
+//		for(int k = 0; k<rand_num; k++)
+//		{
+//				Child1.push_back(FatherBK[rand_index[k]]);
+//				Child2.push_back(MotherBK[rand_index[k]]);
+//		}
+
+
+//		for(int k = 0; k<size;k++)
+//		{
+//				for(j = 0; j < rand_num; j++)
+//				{
+//					if(rand_index[j] == k)
+//						continue;
+//
+//					Child1.push_back(MotherBK[k]);
+//					Child2.push_back(FatherBK[k]);
+//				}
+//		}
+		for(j = 0; j < rand_num; j++)
 		{
-		printf("mix4.3\n");
-				Child1.push_back(FatherBK[rand_index[k]]);
-				Child2.push_back(MotherBK[rand_index[k]]);
+			Child1.push_back(FatherBK[rand_index[j]]);
+			Child2.push_back(MotherBK[rand_index[j]]);
 		}
-		printf("mix5\n");
+
+		if(count(Child1.begin(), Child1.end(), 1) == 0)
+			printf("_____430430430\n");
+		if(count(Child2.begin(), Child2.end(), 1) == 0)
+			printf("_____430430430\n");
 		for(int k = 0; k<size;k++)
 		{
+			int flag = 1;
 				for(j = 0; j < rand_num; j++)
 				{
-						if(rand_index[j] == k)
-							continue;
+					if(rand_index[j] == k){
+						flag = 0;
+						continue;
+					}
+
+
 				}
+				if(flag == 0)
+				{
+					continue;
+				}
+
 				Child1.push_back(MotherBK[k]);
 				Child2.push_back(FatherBK[k]);
 		}
-		printf("mix6\n");
+		if(count(Child1.begin(), Child1.end(), 1) == 0)
+			printf("_____430430430\n");
+		if(count(Child2.begin(), Child2.end(), 1) == 0)
+			printf("_____430430430\n");
 		srand(time(NULL));
 		if((limit_server_num = count(Child1.begin(), Child1.end(), 1)) >= ginfo.im_maxserver)
 		{
-		printf("mix6.1\n");
-				cnt = limit_server_num - ginfo.im_maxserver;
-				printf("mix6.1.1\n");
-				if(cnt >= 2)
-					cnt = cnt + rand()%(cnt/2);
-				while(cnt>0)
+			cnt = limit_server_num - ginfo.im_maxserver;
+			if(cnt >= 2)
+				cnt = cnt + rand()%(cnt/2);
+			while(cnt>0)
+			{
+				rand_delete_index = rand()%size;
+				if(Child1[rand_delete_index] == 1)
 				{
-				printf("mix6.2\n");
-						rand_delete_index = rand()%size;
-						if(Child1[rand_delete_index] == 1)
-						{
-								Child1[rand_delete_index] = 0;
-								cnt--;
-						}
+						Child1[rand_delete_index] = 0;
+						cnt--;
 				}
-				printf("mix6.3\n");
+			}
 		}
-		printf("mix7\n");
+		else if(limit_server_num < ginfo.im_maxserver/2)
+		{
+			cnt = ginfo.im_maxserver - limit_server_num;
+			if(cnt >= 2)
+				cnt = cnt + rand()%(cnt/2);
+			while(cnt>0)
+			{
+				rand_delete_index = rand()%size;
+				if(Child1[rand_delete_index] == 0)
+				{
+						Child1[rand_delete_index] = 1;
+						cnt--;
+				}
+			}
+		}
+		if(count(Child1.begin(), Child1.end(), 1) == 0)
+			printf("_____440440440\n");
+		if(count(Child2.begin(), Child2.end(), 1) == 0)
+			printf("_____440440440\n");
 		if((limit_server_num = count(Child2.begin(), Child2.end(), 1)) >= ginfo.im_maxserver)
 		{
 				cnt = limit_server_num - ginfo.im_maxserver;
@@ -462,23 +484,38 @@ bool immune::imGeneMix()
 						}
 				}
 		}
-		printf("mix8\n");
-
-		printf("i=%d  temp.size()=%d\n",i,temp.size());
+		else if(limit_server_num < ginfo.im_maxserver/2)
+		{
+			cnt = ginfo.im_maxserver - limit_server_num;
+			if(cnt >= 2)
+				cnt = cnt + rand()%(cnt/2);
+			while(cnt>0)
+			{
+				rand_delete_index = rand()%size;
+				if(Child1[rand_delete_index] == 0)
+				{
+						Child2[rand_delete_index] = 1;
+						cnt--;
+				}
+			}
+		}
+		if(count(Child1.begin(), Child1.end(), 1) == 0)
+			printf("_____450450450\n");
+		if(count(Child2.begin(), Child2.end(), 1) == 0)
+				printf("_____450450450\n");
 		temp[i] = Child1;
-		printf("mix8.1\n");
-		printf("i=%d  temp.size()=%d\n",i,temp.size());
 		temp[i+1] = Child2;
 		i++;
-		printf("for done!\n");
 	}
+
+	im_Gen_Gene_Father.clear();
 	for(i=0; i<im_N; i++)
 	{
 		// printf("_GENERATION_AMOUNT%d\n", _GENERATION_AMOUNT);
 		// _GENERATION_AMOUNT = 28
-		im_Gen_Gene_Father[i] = temp[i];
+		im_Gen_Gene_Father.push_back(temp[i]);
 	}
-	printf("mix9\n");
+	return true;
 }
 
 bool immune::imGeneAberrance()     //��������
@@ -494,6 +531,7 @@ bool immune::imGeneAberrance()     //��������
 			imGeneAberranceOne(i);
 		}
 	}
+
 	im_RETGen_Gene();					//������һ����Ⱥ
   return true;
 }
@@ -505,14 +543,13 @@ bool immune::im_RETGen_Gene()  //�����µ���Ⱥ�����ݽ�
 
 	for(i=0,j=0; i<_GENERATION_AMOUNT; i++)
 	{
-		printf("RET1\n" );
 		if(i<im_N)
 		{
-			im_Gen_Gene[i] = im_Gen_Gene_Father[i];
+			im_Gen_Gene.push_back(im_Gen_Gene_Father[i]);
 		}
 		else
 		{
-			im_Gen_Gene[i] = im_memory[j];
+			im_Gen_Gene.push_back(im_memory[j]);
 			j++;
 		}
 	}
@@ -528,38 +565,39 @@ bool immune::imGeneAberranceOne(int index)  //����ĳ������
 	//int Low_limit = 0;
 	//int High_limit = size-1;
 	temp = rand()%size;
-	while(temp == size)
-		temp = rand()%size;
-	int num = count(im_Gen_Gene_Father[index].begin(),im_Gen_Gene_Father[index].end(),1);
 	if(im_Gen_Gene_Father[index][temp] == 1)
 		im_Gen_Gene_Father[index][temp] = 0;
 	else
+		im_Gen_Gene_Father[index][temp] = 1;
+	int num = count(im_Gen_Gene_Father[index].begin(),im_Gen_Gene_Father[index].end(),1);
+	if(num>=ginfo.im_maxserver)
 	{
-		if(num>=ginfo.im_maxserver)
+		while(im_Gen_Gene_Father[index][temp] == 0)	//TODO
 		{
-			while(im_Gen_Gene_Father[index][temp] == 0)
-			{
-				temp = rand()%size;
-				while(temp == size)
-					temp = rand()%size;
-			}
-			im_Gen_Gene_Father[index][temp] = 0;
+			temp = rand()%size;
 		}
-		else
-			im_Gen_Gene_Father[index][temp] = 1;
+		im_Gen_Gene_Father[index][temp] = 0;
 	}
+	else
+	{
+		while(im_Gen_Gene_Father[index][temp] == 1)	//TODO
+		{
+			temp = rand()%size;
+		}
+		im_Gen_Gene_Father[index][temp] = 1;
+	}
+	return true;
 }
 
-bool immune::imAfinity(T link_cost, T flow_err)          //�������л����׺Ͷ�
-{//�׺Ͷ�����С���������������� ��·�ܳɱ� �� �Ƿ��ǿ��н� �����ó�
-  int i;
+bool immune::imAfinity(vector<T> feedback)          //�������л����׺Ͷ�
+{
+  uint_16 i;
   float probability;
-  //����ÿ���������׺Ͷ�
   for(i = 0;i < _GENERATION_AMOUNT; i++)
   {
     probability = count(im_Gen_Gene[i].begin(),im_Gen_Gene[i].end(),1)*ginfo.im_scost\
-                + link_cost[i] - C*flow_err[i]; //����C
-    probability = (probability>0) ? (1/probability):0;
+                + feedback[i][0] + C*feedback[i][1];
+    probability = 1/probability;
     im_affinity[i] = probability;
   }
   return true;
@@ -568,26 +606,27 @@ bool immune::imAfinity(T link_cost, T flow_err)          //�������
 bool immune::imDensity()           //������Ⱥ�ܶ�/Ũ��
 {
   int i;
+  im_density.clear();
   for(i = 0;i < _GENERATION_AMOUNT; i++)
   {
-    im_density[i] = (ginfo.deno-imDensityOne(im_Gen_Gene[i]))/ginfo.deno;
+    im_density.push_back((ginfo.deno-imDensityOne(im_Gen_Gene[i]))/ginfo.deno);
   }
   return true;
 }
 
 int immune::imDensityOne(T &Gene)    //����ĳһ������ͬ�������������ƶ�
-{//ͨ�����������жϻ���֮�������ƶ�
+{
   int i, j;
   int count = 0;
+  printf("(%d,%d)", ginfo.im_number, Gene.size());
   for(i = 0;i < _GENERATION_AMOUNT; i++)
-    for(j = 0;j < ginfo.im_number;j++)
+    for(j = 0;j < ginfo.im_number; j++)
       count += (Gene[j]^im_Gen_Gene[i][j]);
   return count;
 }
 
 bool immune::imBreedProbability()
 {
-	printf("breed1\n");
   int i;
   float sum_afinity=0, sum_dencity=0;
   for(i = 0;i < _GENERATION_AMOUNT;i++)
@@ -595,7 +634,6 @@ bool immune::imBreedProbability()
     sum_afinity += im_affinity[i];
     sum_dencity += im_density[i];
   }
-  	printf("breed2\n");
   float aff, den;
   for(i = 0;i < _GENERATION_AMOUNT;i++)
   {
@@ -603,20 +641,18 @@ bool immune::imBreedProbability()
     den = im_density[i]/sum_dencity;
     im_Probability[i] = ALPHA*(aff-den)+den;    //define�ж���ALPHA
   }
-  	printf("breed3\n");
   return true;
 }
 
-void immune::imPrintInfo()
+void immune::imPrintInfo(vector<T> species)
 {//��ӡ��
   int i, j;
   cout<<"Output Species Info"<<endl;
   for(i = 0;i < _GENERATION_AMOUNT;i++)
   {
-		printf("im_Gen_Gene[%d]\n",i);
     for(j = 0;j < ginfo.im_number;j++)
 		{
-      cout<<im_Gen_Gene[i][j]<<" ";
+      cout<<species[i][j]<<" ";
 		}
     cout<<endl;
   }/*
