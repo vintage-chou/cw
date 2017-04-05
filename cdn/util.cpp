@@ -21,9 +21,9 @@ static char done(std::vector<char> const &f, int m)
 
 static void shift(std::vector<char> &f, int n)
 {
-    int size = f.size();
+    // int size = f.size();
     int count = 0;
-    bool flag = false;
+    // bool flag = false;
 
     for (int i = 0; i < n; i++)
     {
@@ -31,7 +31,7 @@ static void shift(std::vector<char> &f, int n)
         {
             f[i] = 0;
             count++;
-            flag = true;
+            // flag = true;
         }
     }
 
@@ -45,7 +45,7 @@ void combin(Set const &s, Sets &ss, int m)
 {
 
     int size = s.size();
-    int i, count = 1;
+    int i;
     std::vector<char> f(size, 0);
 
     if (m == 0) return;
@@ -73,7 +73,7 @@ void combin(Set const &s, Sets &ss, int m)
 }
 
 // shortest algorithm -- dijkstra
-bool shortest_dijkstra(Adjacency_Matrix const &m, uint_16 src, uint_16 tar, Path_Matrix &path, Shortest_Path shortest_length[])
+bool shortest_dijkstra(Adjacency_Matrix &m, uint_16 src, uint_16 tar, Path_Matrix &path, Shortest_Path shortest_length[])
 {
     uint_8 *find = new uint_8[m.size()];
     Path_Matrix path_map(m.size());
@@ -140,8 +140,60 @@ bool find_path(Path_Matrix &path, Path_Matrix const &path_map, uint_16 src, uint
     return true;
 }
 
+bool shortest_spfa2(Adjacency_Matrix &m, uint_16 src, uint_16 tar, Path_Matrix &path, Shortest_Path shortest_length[])
+{
+    std::queue<uint_16> q;
+    Path_Matrix path_map(m.size());
+    bool *in_queue = new bool[m.size()];
+    uint_16 k = src;
+
+    for (uint_16 v = 0; v < m.size(); v++)
+    {
+        in_queue[v] = false;
+        shortest_length[v] = uint_16(-1);
+        path_map[v] = NO_PARENT;
+    }
+    q.push(src);
+    shortest_length[src] = 0;
+    in_queue[src] = true;
+    path_map[src] = src;
+
+    while(!q.empty())
+    {
+        k = q.front();
+        q.pop();
+        in_queue[k] = false;
+        // relax
+        for (uint_16 v = 0; v < m.size(); v++)
+        {
+            if(m[k][v].cost == COST_INF || shortest_length[k] == uint_16(-1))
+                continue;
+
+            if (shortest_length[v] > shortest_length[k] + m[k][v].cost)
+            {
+                shortest_length[v] = shortest_length[k] + m[k][v].cost;
+                path_map[v] = k;
+                // if v isn`t in the queue.
+                if (! in_queue[v])
+                {
+                    q.push(v);
+                    in_queue[v] = true;
+                }
+            }
+        }
+        // end relax
+    }
+
+    m[path_map[tar]][tar].cost = 0;
+
+    delete[] in_queue;
+
+    return find_path(path, path_map, src, tar);
+}
+
+
 // shortest algorithm -- SPFA
-bool shortest_spfa(Adjacency_Matrix const &m, uint_16 src, uint_16 tar, Path_Matrix &path, Shortest_Path shortest_length[])
+bool shortest_spfa(Adjacency_Matrix &m, uint_16 src, uint_16 tar, Path_Matrix &path, Shortest_Path shortest_length[])
 {
     std::queue<uint_16> q;
     Path_Matrix path_map(m.size());
@@ -215,12 +267,12 @@ bool shortest_spfa(Adjacency_Matrix const &m, uint_16 src, uint_16 tar, Path_Mat
 }
 
 // implement the ford fulkerson from super source to super target.
-void super_ford_fulkerson(Adjacency_Matrix &am, Output_File_Info &of)
+void super_ford_fulkerson(Adjacency_Matrix &am, Output_File_Info &of, Shortest_Func fsp)
 {
     uint_16 network = am.size()-2;
 
     // calculate the ford fulkerson from super source to super customer.
-    ford_fulkerson(am, shortest_spfa, network, network+1);
+    ford_fulkerson(am, fsp, network, network+1);
 
     // make the list of path.
     // super_src -> mid_node_1 -> mid_node_2 -> ... -> mid_node_n -> flow -> cost
@@ -362,7 +414,7 @@ void print_matrix(Adjacency_Matrix const &am)
         for (auto l : p)
         {
             // printf("%d,%d ", l.bandwidth, l.cost);
-            printf("%d ", l.flow);
+            printf("%d ", l.cost);
         }
         printf("\n");
     }

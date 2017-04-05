@@ -11,9 +11,16 @@ using namespace std;
 
 #define MAX_NODE_SIZE 1000
 
-#define COST_INF 120
+#define RUNNING_TIME 10
+
+#define COST_INF 5000
 #define BANDWIDTH_INF (uint_16(-1))
 #define NO_PARENT 1100
+
+#define START 0
+#define END   1
+#define BANDWIDTH 2
+#define COST 3
 
 #ifdef _MY_DEBUG
 #define LOGF  printf
@@ -31,8 +38,8 @@ typedef struct Element_t
     uint_16 bandwidth;
     short flow;
     uint_16 left;        // left bandwidth
-    char cost;
-    char origin_cost;
+    short cost;
+    short origin_cost;
 } Element;
 
 typedef struct _Affinity_Info
